@@ -28,6 +28,7 @@ class NaiveBayes:
         self.BEST_MODEL = False
         self.stopList = set(self.readFile('data/english.stop'))
         self.numFolds = 10
+
     #############################################################################
     # TODO TODO TODO TODO TODO
     # Implement the Multinomial Naive Bayes classifier and the Naive Bayes Classifier with
@@ -46,16 +47,37 @@ class NaiveBayes:
     def classify(self, words):
         """ TODO
             'words' is a list of words to classify. Return 'pos' or 'neg' classification.
+
         """
         if self.FILTER_STOP_WORDS:
             words = self.filterStopWords(words)
 
-        # Write code here
+        for word in words:
+            print(word)
+
+        
         return 'pos'
+
+
 
 
     def addExample(self, klass, words):
         """
+        compute the score, and then select the threshold score based on the training set; find a threshold that gives you the highest accuracy
+        need to compute a score for each training example; the most natural way is to hold examples out of the training sample, choose threshold
+
+        you don't need threshold; you get a uniqe probabilyt for negative and positive, and you pick the one that's greater
+        you have to implement laplace smoothing in case its not seen; in the directions it tells you every freq you need to calculate; 
+        if you caltulate each one then you get frequency of each word with each class in the positive and negative documents
+
+        accuracy threshold for the binary Naive Bayes
+        implemented in the same way as pseudocode from book with add 1 smoothing; it made 80.8 accuracy and 80.6 with -f flags
+        other TAs thought it was good but binary bayes accuracy was lower
+        does that mean implementation was wrong; why would it be?
+        binary classifuing whether it was there outperformed the other one
+        when she did binary she got binary of .74; 
+        thumbs up sentiment classification using ML techniques; look at this document for ideas for improvement; the last part
+
          * TODO
          * Train your model on an example document with label klass ('pos' or 'neg') and
          * words, a list of strings.
@@ -66,9 +88,33 @@ class NaiveBayes:
         if self.FILTER_STOP_WORDS:
             words = self.filterStopWords(words)
 
-        # Write code here
+        
+        if 'counts' not in self.__dict__:
+            self.counts={}
+        if 'V' not in self.__dict__:
+            self.V=0
 
-        pass
+        for word in words:
+            if word not in self.counts:
+                self.counts[word]={'pos':0,'neg':0}
+                self.V+=1
+
+            self.counts[word][klass]+=1
+
+        if 'docnum' not in self.__dict__:
+            self.docnum=0
+        self.docnum+=1
+        if 'posnum' not in self.__dict__:
+            self.posnum=0
+            self.negnum=0
+            
+        if klass=="neg":
+            self.negnum+=1
+        else:
+            self.posnum+=1
+        
+        
+
       
 
     # END TODO (Modify code beyond here with caution)
