@@ -52,10 +52,19 @@ class NaiveBayes:
         if self.FILTER_STOP_WORDS:
             words = self.filterStopWords(words)
 
+        posscore=(self.posnum/self.docnum)
+        negscore=(self.negnum/self.docnum)
         for word in words:
-            print(word)
+            scores={'neg':0,'pos':0}
+            if word in self.counts:
+                scores=self.counts[word]
+            
+            posscore=posscore*(scores['pos']+1)/(self.poswords + self.V)
+            negscore=negscore*(scores['neg']+1)/(self.negwords + self.V)
 
-        
+        if negscore> posscore:
+            return 'neg'
+
         return 'pos'
 
 
@@ -93,6 +102,9 @@ class NaiveBayes:
             self.counts={}
         if 'V' not in self.__dict__:
             self.V=0
+        if 'poswords' not in self.__dict__:
+            self.poswords=0
+            self.negwords=0
 
         for word in words:
             if word not in self.counts:
@@ -100,14 +112,19 @@ class NaiveBayes:
                 self.V+=1
 
             self.counts[word][klass]+=1
+            if klass=="neg":
+                self.negwords+=1
+            else:
+                self.poswords+=1
 
         if 'docnum' not in self.__dict__:
             self.docnum=0
+            
         self.docnum+=1
         if 'posnum' not in self.__dict__:
             self.posnum=0
             self.negnum=0
-            
+
         if klass=="neg":
             self.negnum+=1
         else:
