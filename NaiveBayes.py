@@ -51,25 +51,43 @@ class NaiveBayes:
         """
         if self.FILTER_STOP_WORDS:
             words = self.filterStopWords(words)
+        if self.BOOLEAN_NB:
+            words=list(set(words))
 
-        posscore=(self.posnum/self.docnum)
-        negscore=(self.negnum/self.docnum)
+        posscore=math.log(self.posnum/self.docnum)
+        negscore=math.log(self.negnum/self.docnum)
+
         for word in words:
             scores={'neg':0,'pos':0}
             if word in self.counts:
                 scores=self.counts[word]
-            
-            posscore=posscore*(scores['pos']+1)/(self.poswords + self.V)
-            negscore=negscore*(scores['neg']+1)/(self.negwords + self.V)
+                if self.BOOLEAN_NB:
 
+                    if scores['neg']!=0:
+                        scores['neg']=1
+                    if scores['pos']!=0:
+                        scores['pos']=1
+
+            posscore=posscore+ math.log((scores['pos']+1)/(self.poswords + self.V))
+            negscore=negscore+ math.log((scores['neg']+1)/(self.negwords + self.V))
+            #print(posscore)
+        #print("negscore: "+str(negscore)+", posscore: "+str(posscore))
         if negscore> posscore:
             return 'neg'
 
         return 'pos'
 
 
+#for a specific word, in how many documents of the specific class does it appear in
+#denominator is the number of documents?
+#you convert the string of words into a set for each document
+#for every document you're capping the word count at 1
+#denominator is changed how we look at every document; 
+# in binary model we treat doc as bag of words but only based on existence of the word
+#denom is (w laplacean smoothing) is size of vocab plus count of all words seen in the given class
+#add smoothing to binary part
 
-
+#
     def addExample(self, klass, words):
         """
         compute the score, and then select the threshold score based on the training set; find a threshold that gives you the highest accuracy
@@ -97,6 +115,8 @@ class NaiveBayes:
         if self.FILTER_STOP_WORDS:
             words = self.filterStopWords(words)
 
+        if self.BOOLEAN_NB:
+            words=list(set(words))
         
         if 'counts' not in self.__dict__:
             self.counts={}
@@ -112,10 +132,11 @@ class NaiveBayes:
                 self.V+=1
 
             self.counts[word][klass]+=1
-            if klass=="neg":
-                self.negwords+=1
-            else:
-                self.poswords+=1
+        
+        if klass=="neg":
+            self.negwords+=len(words)
+        else:
+            self.poswords+=len(words)
 
         if 'docnum' not in self.__dict__:
             self.docnum=0
@@ -132,7 +153,11 @@ class NaiveBayes:
         
         
 
-      
+      #remember to do smoothing for bigram NB
+      #find top 10 unique highest freq words for pos and neg
+      #smoothing: interpolation between unigram & bigram; tune those weights
+
+
 
     # END TODO (Modify code beyond here with caution)
     #############################################################################
@@ -358,7 +383,36 @@ def analyze_model(nb_classifier):
     # TODO: This function takes a <nb_classifier> as input, and outputs two word list <pos_signal_words> and
     #  <neg_signal_words>. <pos_signal_words> is a list of 10 words signaling the positive klass, and <neg_signal_words>
     #  is a list of 10 words signaling the negative klass.
-    pass
+    pcountlist=[0]
+    pwordlist=['']
+    ncountlist=[0]
+    nwordlist=['']
+    
+    
+    for word in nb_classifier.counts:
+        
+        
+        for i in range(len(pwordlist)):
+            if nb_classifier.counts[word]['pos']>pcountlist[i] and word not in nwordlist:
+                pcountlist.insert(i,nb_classifier.counts[word]['pos'])
+                pwordlist.insert(i,word)
+                break
+        if len(pwordlist)>10:
+            pwordlist=pwordlist[:-1]
+            pcountlist=pcountlist[:-1]
+        
+        for i in range(len(nwordlist)):
+            if nb_classifier.counts[word]['neg']>ncountlist[i] and word not in pwordlist:
+                ncountlist.insert(i,nb_classifier.counts[word]['neg'])
+                nwordlist.insert(i,word)
+                break
+        if len(nwordlist)>10:
+            nwordlist=nwordlist[:-1]
+            ncountlist=ncountlist[:-1]
+
+    return [nwordlist,pwordlist]
+
+
 
 
 if __name__ == "__main__":
