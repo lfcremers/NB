@@ -58,13 +58,21 @@ class NaiveBayes:
         negscore=math.log(self.negnum/self.docnum)
 
         if self.BEST_MODEL:
-            for i in range(len(words)-1):
-                scores={'neg':0,'pos':0}
-                if words[i] in self.bigrams and words[i+1] in self.bigrams[words[i]]:
-                    scores=self.bigrams[words[i]][words[i+1]]
+            #print(len(words)-1)
+            #print(len(words[:-1]))
+            for i,word in zip(range(len(words)-1),words[:-1]):
 
-                posscore=posscore+ math.log((scores['pos']+1)/(self.poswords + self.V))
-                negscore=negscore+ math.log((scores['neg']+1)/(self.negwords + self.V)) 
+                bscores={'neg':0,'pos':0}
+                if words[i] in self.bigrams and words[i+1] in self.bigrams[words[i]]:
+                    bscores=self.bigrams[words[i]][words[i+1]]
+
+                uscores={'neg':0,'pos':0}
+                if word in self.counts:
+                    scores=self.counts[word]
+
+                
+                posscore=posscore+ (.6)*math.log((bscores['pos']+1)/(self.poswords + self.V))+(.4)*math.log((uscores['pos']+1)/(self.poswords + self.V))
+                negscore=negscore+ (.6)*math.log((bscores['neg']+1)/(self.negwords + self.V))+(.4)*math.log((uscores['neg']+1)/(self.negwords + self.V)) 
 
         else:
 
@@ -137,6 +145,18 @@ class NaiveBayes:
             self.poswords=0
             self.negwords=0
 
+        if 'counts' not in self.__dict__:
+                self.counts={}
+    
+        for word in words:
+            if word not in self.counts:
+                self.counts[word]={'pos':0,'neg':0}
+                
+                if not self.BEST_MODEL:
+                    self.V+=1
+
+            self.counts[word][klass]+=1
+
         if self.BEST_MODEL:
             altwords=list(set(words))
             if 'bigrams' not in self.__dict__:
@@ -147,20 +167,11 @@ class NaiveBayes:
                 self.V+=1
                 if words[i] not in self.bigrams:
                     self.bigrams[words[i]]={}
+                    
                 if words[i+1] not in self.bigrams[words[i]]:
                     self.bigrams[words[i]][words[i+1]]={'pos':0,'neg':0}
                 self.bigrams[words[i]][words[i+1]][klass]+=1
-
-        else:
-            if 'counts' not in self.__dict__:
-                self.counts={}
-    
-            for word in words:
-                if word not in self.counts:
-                    self.counts[word]={'pos':0,'neg':0}
-                    self.V+=1
-
-                self.counts[word][klass]+=1
+            
             
         if klass=="neg":
             self.negwords+=len(words)
@@ -443,7 +454,7 @@ def analyze_model(nb_classifier):
                 if len(nwordlist)>10:
                     nwordlist=nwordlist[:-2]
                     ncountlist=ncountlist[:-1]
-    
+
     else:
         for word in nb_classifier.counts:
             
