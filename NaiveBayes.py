@@ -57,21 +57,31 @@ class NaiveBayes:
         posscore=math.log(self.posnum/self.docnum)
         negscore=math.log(self.negnum/self.docnum)
 
-        for word in words:
-            scores={'neg':0,'pos':0}
-            if word in self.counts:
-                scores=self.counts[word]
-                if self.BOOLEAN_NB:
+        if self.BEST_MODEL:
+            for i in range(len(words)-1):
+                scores={'neg':0,'pos':0}
+                if words[i] in self.bigrams and words[i+1] in self.bigrams[words[i]]:
+                    scores=self.bigrams[words[i]][words[i+1]]
 
-                    if scores['neg']!=0:
-                        scores['neg']=1
-                    if scores['pos']!=0:
-                        scores['pos']=1
+                posscore=posscore+ math.log((scores['pos']+1)/(self.poswords + self.V))
+                negscore=negscore+ math.log((scores['neg']+1)/(self.negwords + self.V)) 
 
-            posscore=posscore+ math.log((scores['pos']+1)/(self.poswords + self.V))
-            negscore=negscore+ math.log((scores['neg']+1)/(self.negwords + self.V))
-            #print(posscore)
-        #print("negscore: "+str(negscore)+", posscore: "+str(posscore))
+        else:
+
+            for word in words:
+                scores={'neg':0,'pos':0}
+                if word in self.counts:
+                    scores=self.counts[word]
+                    if self.BOOLEAN_NB:
+
+                        if scores['neg']!=0:
+                            scores['neg']=1
+                        if scores['pos']!=0:
+                            scores['pos']=1
+
+                posscore=posscore+ math.log((scores['pos']+1)/(self.poswords + self.V))
+                negscore=negscore+ math.log((scores['neg']+1)/(self.negwords + self.V))
+            
         if negscore> posscore:
             return 'neg'
 
@@ -105,6 +115,9 @@ class NaiveBayes:
         when she did binary she got binary of .74; 
         thumbs up sentiment classification using ML techniques; look at this document for ideas for improvement; the last part
 
+        feature selection: irrelevant or contradictory features; you have to select negation words for example
+
+        
          * TODO
          * Train your model on an example document with label klass ('pos' or 'neg') and
          * words, a list of strings.
@@ -118,21 +131,37 @@ class NaiveBayes:
         if self.BOOLEAN_NB:
             words=list(set(words))
         
-        if 'counts' not in self.__dict__:
-            self.counts={}
         if 'V' not in self.__dict__:
-            self.V=0
+                self.V=0
         if 'poswords' not in self.__dict__:
             self.poswords=0
             self.negwords=0
 
-        for word in words:
-            if word not in self.counts:
-                self.counts[word]={'pos':0,'neg':0}
-                self.V+=1
+        if self.BEST_MODEL:
+            altwords=list(set(words))
+            if 'bigrams' not in self.__dict__:
+                #need to build out the dictionary of bigrams; but how to do that when more new words are being added at each call of the function?
+                self.bigrams={}
 
-            self.counts[word][klass]+=1
-        
+            for i in range(len(words)-1):
+                self.V+=1
+                if words[i] not in self.bigrams:
+                    self.bigrams[words[i]]={}
+                if words[i+1] not in self.bigrams[words[i]]:
+                    self.bigrams[words[i]][words[i+1]]={'pos':0,'neg':0}
+                self.bigrams[words[i]][words[i+1]][klass]+=1
+
+        else:
+            if 'counts' not in self.__dict__:
+                self.counts={}
+    
+            for word in words:
+                if word not in self.counts:
+                    self.counts[word]={'pos':0,'neg':0}
+                    self.V+=1
+
+                self.counts[word][klass]+=1
+            
         if klass=="neg":
             self.negwords+=len(words)
         else:
@@ -151,7 +180,7 @@ class NaiveBayes:
         else:
             self.posnum+=1
         
-        
+    
 
       #remember to do smoothing for bigram NB
       #find top 10 unique highest freq words for pos and neg
@@ -388,29 +417,56 @@ def analyze_model(nb_classifier):
     ncountlist=[0]
     nwordlist=['']
     
-    
-    for word in nb_classifier.counts:
-        
-        
-        for i in range(len(pwordlist)):
-            if nb_classifier.counts[word]['pos']>pcountlist[i] and word not in nwordlist:
-                pcountlist.insert(i,nb_classifier.counts[word]['pos'])
-                pwordlist.insert(i,word)
-                break
-        if len(pwordlist)>10:
-            pwordlist=pwordlist[:-1]
-            pcountlist=pcountlist[:-1]
-        
-        for i in range(len(nwordlist)):
-            if nb_classifier.counts[word]['neg']>ncountlist[i] and word not in pwordlist:
-                ncountlist.insert(i,nb_classifier.counts[word]['neg'])
-                nwordlist.insert(i,word)
-                break
-        if len(nwordlist)>10:
-            nwordlist=nwordlist[:-1]
-            ncountlist=ncountlist[:-1]
+    if nb_classifier.BEST_MODEL:
+        for first_word in nb_classifier.bigrams:
+            for second_word in nb_classifier.bigrams[first_word]:
+                for i in range(len(pwordlist)):
+                    if nb_classifier.bigrams[first_word][second_word]['pos']>pcountlist[i] and first_word not in nwordlist \
+                    and second_word not in nwordlist and first_word not in pwordlist and second_word not in pwordlist:
+                        pcountlist.insert(i,nb_classifier.bigrams[first_word][second_word]['pos'])
+                        pcountlist.insert(i,nb_classifier.bigrams[first_word][second_word]['pos'])
+                        pwordlist.insert(i,first_word)
+                        pwordlist.insert(i,second_word)
+                        break
+                if len(pwordlist)>10:
+                    pwordlist=pwordlist[:-2]
+                    pcountlist=pcountlist[:-1]
 
-    return [nwordlist,pwordlist]
+                for i in range(len(nwordlist)):
+                    if nb_classifier.bigrams[first_word][second_word]['neg']>ncountlist[i] and first_word not in pwordlist \
+                        and second_word not in pwordlist and first_word not in nwordlist and second_word not in nwordlist:
+                        ncountlist.insert(i,nb_classifier.bigrams[first_word][second_word]['neg'])
+                        ncountlist.insert(i,nb_classifier.bigrams[first_word][second_word]['neg'])
+                        nwordlist.insert(i,first_word)
+                        nwordlist.insert(i,second_word)
+                        break
+                if len(nwordlist)>10:
+                    nwordlist=nwordlist[:-2]
+                    ncountlist=ncountlist[:-1]
+    
+    else:
+        for word in nb_classifier.counts:
+            
+            
+            for i in range(len(pwordlist)):
+                if nb_classifier.counts[word]['pos']>pcountlist[i] and word not in nwordlist:
+                    pcountlist.insert(i,nb_classifier.counts[word]['pos'])
+                    pwordlist.insert(i,word)
+                    break
+            if len(pwordlist)>10:
+                pwordlist=pwordlist[:-1]
+                pcountlist=pcountlist[:-1]
+            
+            for i in range(len(nwordlist)):
+                if nb_classifier.counts[word]['neg']>ncountlist[i] and word not in pwordlist:
+                    ncountlist.insert(i,nb_classifier.counts[word]['neg'])
+                    nwordlist.insert(i,word)
+                    break
+            if len(nwordlist)>10:
+                nwordlist=nwordlist[:-1]
+                ncountlist=ncountlist[:-1]
+
+    return [pwordlist,nwordlist]
 
 
 
