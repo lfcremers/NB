@@ -80,12 +80,13 @@ class NaiveBayes:
                 scores={'neg':0,'pos':0}
                 if word in self.counts:
                     scores=self.counts[word]
-                    if self.BOOLEAN_NB:
+                    # if self.BOOLEAN_NB:
 
-                        if scores['neg']!=0:
-                            scores['neg']=1
-                        if scores['pos']!=0:
-                            scores['pos']=1
+                        # if scores['neg']!=0:
+                        #     scores['neg']=1
+                        # if scores['pos']!=0:
+                        #     scores['pos']=1
+
 
                 posscore=posscore+ math.log((scores['pos']+1)/(self.poswords + self.V))
                 negscore=negscore+ math.log((scores['neg']+1)/(self.negwords + self.V))
@@ -160,7 +161,6 @@ class NaiveBayes:
         if self.BEST_MODEL:
             altwords=list(set(words))
             if 'bigrams' not in self.__dict__:
-                #need to build out the dictionary of bigrams; but how to do that when more new words are being added at each call of the function?
                 self.bigrams={}
 
             for i in range(len(words)-1):
@@ -191,12 +191,6 @@ class NaiveBayes:
         else:
             self.posnum+=1
         
-    
-
-      #remember to do smoothing for bigram NB
-      #find top 10 unique highest freq words for pos and neg
-      #smoothing: interpolation between unigram & bigram; tune those weights
-
 
 
     # END TODO (Modify code beyond here with caution)
