@@ -1,3 +1,8 @@
+"""
+my two new heuristics for the optimal model option includes bigram naive bayes classification (where all probabilities
+ and word counts are on pairs of 2 consecutive words) and interpolation between the unigram and bigram classifiers. 
+I tried to include the binarization for this as well, but this worsened the accuracy significantly."""
+
 import sys
 import getopt
 import os
@@ -58,8 +63,7 @@ class NaiveBayes:
         negscore=math.log(self.negnum/self.docnum)
 
         if self.BEST_MODEL:
-            #print(len(words)-1)
-            #print(len(words[:-1]))
+
             for i,word in zip(range(len(words)-1),words[:-1]):
 
                 bscores={'neg':0,'pos':0}
@@ -80,13 +84,6 @@ class NaiveBayes:
                 scores={'neg':0,'pos':0}
                 if word in self.counts:
                     scores=self.counts[word]
-                    # if self.BOOLEAN_NB:
-
-                        # if scores['neg']!=0:
-                        #     scores['neg']=1
-                        # if scores['pos']!=0:
-                        #     scores['pos']=1
-
 
                 posscore=posscore+ math.log((scores['pos']+1)/(self.poswords + self.V))
                 negscore=negscore+ math.log((scores['neg']+1)/(self.negwords + self.V))
